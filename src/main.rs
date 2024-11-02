@@ -172,46 +172,35 @@ async fn dump_desktop() -> Vec<Node> {
         .await
         .expect("Failed to create proxy");
     let address = bus.get_address().await.expect("Failed to get address");
-    let mut connection_futures = Vec::with_capacity(100);
-    for _ in 0..128 {
-        let connection_future = ConnectionBuilder::address(address.as_str())
-            .expect("Failed to create connection builder")
-            .build();
-        connection_futures.push(connection_future);
-    }
-    let connection_pool = futures::future::join_all(connection_futures)
+    let connection = ConnectionBuilder::address(address.as_str())
+        .expect("Failed to create connection builder")
+        .build()
         .await
-        .into_iter()
-        .map(|r| r.expect("Failed to create connection"))
-        .collect::<Vec<_>>();
+        .expect("Failed to create connection");
     let initial_properties_and_children =
-        get_properties_and_child_nodes(&connection_pool[0], None, 0).await;
+        get_properties_and_child_nodes(&connection, None, 0).await;
     let mut latest_idx = 1;
     let mut futures = FuturesUnordered::new();
-    let mut last_connection_index = 0;
     for child in initial_properties_and_children.2 {
-        let connection = &connection_pool[last_connection_index];
+        let connection = &connection;
         futures.push(get_properties_and_child_nodes(
             connection,
             Some(child),
             latest_idx,
         ));
         latest_idx += 1;
-        last_connection_index = (last_connection_index + 1) % connection_pool.len();
     }
     let mut all_nodes = vec![];
     while let Some((element_id, properties, children, object_info)) = futures.next().await {
         let mut children_ids: Vec<u32> = vec![];
         for c in children {
-            let connection = &connection_pool[last_connection_index];
             futures.push(get_properties_and_child_nodes(
-                connection,
+                &connection,
                 Some(c),
                 latest_idx,
             ));
             children_ids.push(latest_idx);
             latest_idx += 1;
-            last_connection_index = (last_connection_index + 1) % connection_pool.len();
         }
         if let Some(properties) = properties {
             let node = Node {
