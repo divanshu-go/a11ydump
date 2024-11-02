@@ -1,0 +1,11 @@
+[package]
+name = "a11ydump"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+futures = "0.3.31"
+serde = "1.0.214"
+tokio = { version = "1.41.0", features = ["full"] }
+zbus = { version = "5.0.1", default-features = false, features = ["tokio"] }
+zvariant = "5.0.1"
