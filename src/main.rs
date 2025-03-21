@@ -216,7 +216,11 @@ async fn dump_desktop() -> Vec<Node> {
 }
 
 async fn tree() {
-    let _ = dump_desktop().await;
+    let nodes = dump_desktop().await;
+    
+    for node in nodes.iter() {
+        println!("{:?}", node);
+    }
 }
 
 #[tokio::main]
